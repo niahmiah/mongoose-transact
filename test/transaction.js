@@ -320,27 +320,6 @@ describe('Transaction', function(){
       done();
     });
 
-    it('should not set the transaction state to "started" when the version has changed', function(done){
-      Transaction.findOneAndUpdate({
-        _id: tx._id
-      },
-      {
-        $inc: {__v: 1}
-      },
-      {
-        new: true, 
-        upsert: false
-      }, 
-      function(err, doc){
-        should.not.exist(err);
-        should.exist(doc);
-        tx.start('mocha', function(err){
-          should.exist(err);
-          done();
-        });
-      });
-    });
-
     it('should not set the transaction state to "started" when state is not "new"', function(done){
       Transaction.findOneAndUpdate({
         _id: tx._id
@@ -355,7 +334,7 @@ describe('Transaction', function(){
       function(err, doc){
         should.not.exist(err);
         should.exist(doc);
-        tx.start('mocha', function(err){
+        tx.start(function(err){
           should.exist(err);
           done();
         });
@@ -363,7 +342,7 @@ describe('Transaction', function(){
     });
 
     it('should set the transaction state to "started" when the version hasnt changed', function(done){
-      tx.start('mocha', function(err){
+      tx.start(function(err){
         should.not.exist(err);
         Transaction.findOne({_id: tx._id}, function(err, doc){
           doc.state.should.equal('started');
@@ -423,7 +402,7 @@ describe('Transaction', function(){
       });
       tx.save(function(err){
         if(err) { console.log('Error create test tx: '+err); }
-        tx.start('mocha', function(err){
+        tx.start(function(err){
           (startChange.calledTwice).should.equal(true);
           (finish.calledOnce).should.equal(true);
           done();
@@ -459,7 +438,7 @@ describe('Transaction', function(){
       });
       tx.save(function(err){
         if(err) { console.log('Error create test tx: '+err); }
-        tx.start('mocha', function(err){
+        tx.start(function(err){
           (startChange.calledOnce).should.equal(true);
           (revert.calledOnce).should.equal(true);
           done();
@@ -519,7 +498,7 @@ describe('Transaction', function(){
           console.log('Error create test tx: '+err);
           done(err);
         }else{
-          tx.start('mocha', function(err){
+          tx.start(function(err){
             done(err);
           });
         }
@@ -541,7 +520,7 @@ describe('Transaction', function(){
             docId: bob._id,
             data: {phone: '123-123-1234'},
             inc: {num: 1},
-            prev: bob
+            //prev: bob
           },
           {
             coll: 'testusers',
@@ -551,7 +530,7 @@ describe('Transaction', function(){
               to: 'tags',
               data: 'you\'re it!'
             },
-            prev: alice
+            //prev: alice
           },
           {
             coll: 'testusers',
@@ -561,14 +540,14 @@ describe('Transaction', function(){
               from: 'tags',
               data: 'you\'re it!'
             },
-            prev: mary
+            //prev: mary
           },
           {
             coll: 'testusers',
             act: 'update',
             docId: tom._id,
             inc: {num: -1},
-            prev: tom
+            //prev: tom
           }
         ]
       });
@@ -585,7 +564,7 @@ describe('Transaction', function(){
                   console.log('Error create test tx: '+err); 
                   done(err);
                 }else{
-                  tx.start('mocha', function(err){
+                  tx.start(function(err){
                     done(err);
                   });
                 }
@@ -607,13 +586,13 @@ describe('Transaction', function(){
             coll: 'testusers',
             act: 'remove',
             docId: bob._id,
-            prev: bob
+            //prev: bob
           },
           {
             coll: 'testusers',
             act: 'remove',
             docId: alice._id,
-            prev: alice
+            //prev: alice
           }
         ]
       });
@@ -627,11 +606,102 @@ describe('Transaction', function(){
               console.log('Error create test tx: '+err); 
               done(err);
             }else{
-              tx.start('mocha', function(err){
+              tx.start(function(err){
                 done(err);
               });
             }
           });
+        });
+      });
+    });
+
+    it('should revert on bad removes', function(done){
+      var testUser1 = new TestUser({name: 'John'});
+      var testUser2 = {name: 'Mary', '_id': 'blah'};
+
+      var tx = new Transaction({
+        app: 'mocha',
+        changes: [
+          {
+            coll: 'testusers',
+            act: 'remove',
+            docId: testUser1._id
+          },
+          {
+            coll: 'testusers',
+            act: 'remove',
+            docId: testUser2._id
+          }
+        ]
+      });
+      testUser1.save(function(err){
+        if(err) { 
+          console.log('Error saving test user: '+err);
+        }
+        tx.save(function(err){
+          if(err) { 
+            console.log('Error create test tx: '+err);
+            done(err);
+          }else{
+            tx.start(function(err){
+              should.exist(err);
+              var errString = 'Error: Transaction failed, but ';
+              errString += 'was rolled back successfully.';
+              (err.toString()).should.equal(errString);
+              TestUser.findOne({_id: testUser1}, function(err, doc){
+                should.exist(doc);
+                done(err);
+              });
+            });
+          }
+        });
+      });
+    });
+
+    it('should revert on bad inserts', function(done){
+      var testUser1 = new TestUser({name: 'Tom'});
+      var testUser2 = new TestUser({name: 'Sam'});
+
+      var tx = new Transaction({
+        app: 'mocha',
+        changes: [
+          {
+            coll: 'testusers',
+            act: 'insert',
+            docId: testUser1._id,
+            data: testUser1
+          },
+          {
+            coll: 'testusers',
+            act: 'insert',
+            docId: testUser2._id,
+            data: testUser2
+          }
+        ]
+      });
+      testUser2.save(function(err){
+        if(err) { 
+          console.log('Error saving test user: '+err);
+        }
+        tx.save(function(err){
+          if(err) { 
+            console.log('Error create test tx: '+err);
+            done(err);
+          }else{
+            tx.start(function(err){
+              should.exist(err);
+              var errString = 'Error: Transaction failed, but ';
+              errString += 'was rolled back successfully.';
+              (err.toString()).should.equal(errString);
+              TestUser.findOne({_id: testUser1}).lean().exec(function(err, doc){
+                should.not.exist(doc);
+                TestUser.findOne({_id: testUser2}).lean().exec(function(err, doc){
+                  should.exist(doc);
+                  done(err);
+                });
+              });
+            });
+          }
         });
       });
     });
