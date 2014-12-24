@@ -98,7 +98,10 @@ An example *data* object to update 2 documents:
 &nbsp;&nbsp;]  
 }  
 
-**You can also mix and match the operators, or modify more than 2 documents.**
+Additional info
+
+* You can mix and match the actions, to insert and remove, insert and update, etc.  
+* You can modify more than 2 documents.
 &nbsp;  
 &nbsp;  
 
