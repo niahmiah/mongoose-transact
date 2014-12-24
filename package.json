@@ -1,6 +1,6 @@
 {
   "name": "mongoose-transact",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A mongoose schema for mongo transactions",
   "main": "index.js",
   "scripts": {

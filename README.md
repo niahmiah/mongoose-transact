@@ -112,6 +112,14 @@ Additional info
 &nbsp;  
 &nbsp;  
 
+##Cleaning up after a system restart
+If a transaction is left in an incomplete state due to a system restart, there is a method for finding and reverting those transactions:
+
+**cleanupOldJobs(expiredDate, app, callback)**  
+This static method allows you to provide a timestamp to compare to the transaction's *lastModifiedDate*, and if the last modification was older than the expiredDate, it reverts the transaction. 
+
+The *app* field can be set to null to find transactions for any app, or it can be specified to allow you to cleanup only transactions for that app name.
+
 ##Testing
 
 From within the directory containing this source:
