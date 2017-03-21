@@ -26,7 +26,7 @@
   },
   "homepage": "https://github.com/niahmiah/mongoose-transact",
   "dependencies": {
-    "mongoose": ">3.6.0",
+    "mongoose": "~3.8.0",
     "async": "0.9.0"
   },
   "devDependencies": {
